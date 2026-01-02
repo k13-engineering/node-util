@@ -1,0 +1,26 @@
+{
+  "name": "@k13engineering/util",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Small utilities to be copied and pasted",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/lib/index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k13-engineering/node-util.git"
+  },
+  "keywords": [
+  ],
+  "author": "Simon Kadisch",
+  "license": "LGPL 2.1",
+  "bugs": {
+    "url": "https://github.com/k13-engineering/node-util/issues"
+  },
+  "homepage": "https://github.com/k13-engineering/node-util#readme",
+  "devDependencies": {}
+}
