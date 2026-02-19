@@ -4,6 +4,7 @@
   "scripts": {
     "build": "rm -rf dist/ && deno-node-build --root . --out dist/ --entry lib/index.ts",
     "test": "c8 --reporter lcov --reporter html --reporter text --all --src lib/ mocha test/**/*.ts",
+    "type-check": "tsc --noEmit",
     "lint": "eslint ."
   },
   "devDependencies": {
