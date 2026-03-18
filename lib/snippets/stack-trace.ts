@@ -1,6 +1,7 @@
 
 const createStackTrace = ({ up }: { up: number }) => {
   const error = Error();
+  /* c8 ignore next 3 */
   if (error.stack === undefined) {
     throw Error("failed to create stack trace");
   }

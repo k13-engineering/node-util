@@ -150,6 +150,7 @@ describe("createDefaultGarbageCollectedWithoutReleaseError", () => {
       info: "TestResource #123",
       releaseFunctionName: "dispose",
       resourcesName: "TestResources",
+      allocationStackTrace: `at Object.<anonymous> (test-file.js:10:15)`
     });
 
     assert.strictEqual(error.name, "TestMemoryLeakError");
@@ -165,6 +166,7 @@ describe("createDefaultGarbageCollectedWithoutReleaseError", () => {
       info: "Buffer instance at 0x12345",
       releaseFunctionName: "unmap",
       resourcesName: "buffers",
+      allocationStackTrace: `at Object.<anonymous> (buffer-file.js:20:5)`
     });
 
     assert.strictEqual(error.name, "BufferLeakError");
