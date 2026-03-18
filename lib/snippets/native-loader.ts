@@ -15,48 +15,17 @@ type TSystemInterface = {
 
 const createNativeAddonLoader = ({
   systemInterface,
-  ourScriptPath,
+  importMeta,
+  buildFolderPath: providedBuildFolderPath,
 }: {
   systemInterface: TSystemInterface;
-  ourScriptPath: string;
+  importMeta: { url: string };
+  buildFolderPath: string;
 }) => {
 
-
-  const findPackageJson = ({ startPath, maxUpwardSteps }: { startPath: string; maxUpwardSteps: number }) => {
-    let currentPath = startPath;
-
-    for (let i = 0; i < maxUpwardSteps; i += 1) {
-      const packageJsonPath = nodePath.join(currentPath, "package.json");
-
-      if (systemInterface.fileSystem.existsSync(packageJsonPath)) {
-        return packageJsonPath;
-      }
-
-      const parentPath = nodePath.dirname(currentPath);
-
-      // Reached filesystem root
-      if (parentPath === currentPath) {
-        break;
-      }
-
-      currentPath = parentPath;
-    }
-
-    throw new Error(`Could not find package.json within ${maxUpwardSteps} directory levels from ${startPath}`);
-  };
-
-  const findPackageRoot = ({ maxUpwardSteps }: { maxUpwardSteps: number }) => {
-    const ourScriptDirectory = nodePath.dirname(ourScriptPath);
-
-    const ourPackageJsonPath = findPackageJson({
-      startPath: ourScriptDirectory,
-      maxUpwardSteps,
-    });
-
-    const ourPackageRoot = nodePath.dirname(ourPackageJsonPath);
-
-    return ourPackageRoot;
-  };
+  const scriptPath = nodeUrl.fileURLToPath(importMeta.url);
+  const scriptDirectory = nodePath.dirname(scriptPath);
+  const resolvedBuildFolderPath = nodePath.join(scriptDirectory, providedBuildFolderPath);
 
   const findAddonInAddonFolder = ({ addonFolderPath }: { addonFolderPath: string }) => {
     const entries = systemInterface.fileSystem.readdirSync(addonFolderPath);
@@ -131,36 +100,23 @@ const createNativeAddonLoader = ({
     return native;
   };
 
-  const loadRelativeToPackageRoot = ({ relativeBuildFolderPath }: { relativeBuildFolderPath: string }) => {
-    let packageRoot: string;
-
-    try {
-      packageRoot = findPackageRoot({ maxUpwardSteps: 10 });
-    } catch (err) {
-      let message = "could not find our package root";
-      message += ", make sure to keep the package structure intact when distributing the package";
-      message += " - a package.json and built addon at ./build are required";
-      throw Error(message, { cause: err });
+  const load = () => {
+    if (!systemInterface.fileSystem.existsSync(resolvedBuildFolderPath)) {
+      throw Error(`no build folder found at "${resolvedBuildFolderPath}", make sure to build the native addon first`);
     }
 
-    const buildFolderPath = nodePath.join(packageRoot, relativeBuildFolderPath);
-
-    if (!systemInterface.fileSystem.existsSync(buildFolderPath)) {
-      throw Error(`no build folder found at our package root "${buildFolderPath}", make sure to build the native addon first`);
-    }
-
-    const addonFolderPath = determineReleaseOrDebugFolder({ buildFolderPath });
+    const addonFolderPath = determineReleaseOrDebugFolder({ buildFolderPath: resolvedBuildFolderPath });
     const native = loadAddonFromFolder({ addonFolderPath });
 
     return native;
   };
 
   return {
-    loadRelativeToPackageRoot,
+    load,
   };
 };
 
-const createDefaultSystemInterface = (): TSystemInterface => {
+const createDefaultSystemInterface = ({ importMeta }: { importMeta: { url: string } }): TSystemInterface => {
 
   /* c8 ignore start */
   const existsSync: TFileSystemInterface["existsSync"] = (path) => {
@@ -179,7 +135,7 @@ const createDefaultSystemInterface = (): TSystemInterface => {
 
   /* c8 ignore start */
   const loadAddonAtPath: TSystemInterface["loadAddonAtPath"] = ({ addonFilePath }) => {
-    const require = nodeModule.createRequire(import.meta.url);
+    const require = nodeModule.createRequire(importMeta.url);
     const native = require(addonFilePath);
     return native;
   };
@@ -191,14 +147,13 @@ const createDefaultSystemInterface = (): TSystemInterface => {
   };
 };
 
-const createDefaultNativeAddonLoader = () => {
-  const systemInterface = createDefaultSystemInterface();
-  const ourScriptUrl = import.meta.url;
-  const ourScriptPath = nodeUrl.fileURLToPath(ourScriptUrl);
+const createDefaultNativeAddonLoader = ({ importMeta, buildFolderPath }: { importMeta: { url: string }; buildFolderPath: string }) => {
+  const systemInterface = createDefaultSystemInterface({ importMeta });
 
   const nativeAddonLoader = createNativeAddonLoader({
     systemInterface,
-    ourScriptPath,
+    importMeta,
+    buildFolderPath,
   });
 
   return nativeAddonLoader;
