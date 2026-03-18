@@ -2,27 +2,39 @@ type TInstance = {
   release: () => void;
 };
 
+const createStackTrace = () => {
+  const error = Error();
+  if (error.stack === undefined) {
+    throw Error("Failed to create stack trace");
+  }
+
+  return error.stack;
+};
+
 const createGarbageCollectionGuard = <T>({
   createError,
 }: {
-  createError: (args: { info: T }) => Error,
+  createError: (args: { info: T, protectStackTrace: string }) => Error,
 }) => {
 
-  const instanceFinalizationRegistry = new FinalizationRegistry((info: T) => {
+  const instanceFinalizationRegistry = new FinalizationRegistry((infoAndStackTrace: { info: T, protectStackTrace: string }) => {
     // this callback is called when a instance is garbage collected without release being called
-    throw createError({ info });
+    throw createError(infoAndStackTrace);
   });
 
   const protect = ({
     release: providedRelease,
     info
   }: { release: () => void; info: T }): TInstance => {
+
+    const protectStackTrace = createStackTrace();
+
     const release = () => {
       providedRelease();
       instanceFinalizationRegistry.unregister(release);
     };
 
-    instanceFinalizationRegistry.register(release, info, release);
+    instanceFinalizationRegistry.register(release, { info, protectStackTrace }, release);
 
     return {
       release
